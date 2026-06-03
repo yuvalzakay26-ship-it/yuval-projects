@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /*
+   * Light theme (default variable set). Soft, premium off-white surface
+   * rather than a flat plain white — keeps the design feeling clean.
+   * Values are space-separated RGB channels so Tailwind opacity modifiers work.
+   */
+  :root {
+    --color-bg: 238 240 245;
+    --color-surface: 255 255 255;
+    --color-surface-2: 246 247 251;
+    --color-border: 226 228 236;
+    --color-accent: 108 76 230;
+    --color-accent-soft: 91 63 214;
+    --color-fg: 24 24 33;
+    color-scheme: light;
+  }
+
+  /* Dark theme — preserves the original portfolio look exactly. */
+  .dark {
+    --color-bg: 10 10 15;
+    --color-surface: 19 19 28;
+    --color-surface-2: 27 27 39;
+    --color-border: 38 38 51;
+    --color-accent: 124 92 255;
+    --color-accent-soft: 165 148 255;
+    --color-fg: 255 255 255;
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-bg text-fg antialiased;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+}
