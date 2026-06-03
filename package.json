@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev-chrome.mjs",
+    "dev:chrome": "node scripts/dev-chrome.mjs",
+    "dev:plain": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
