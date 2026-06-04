@@ -29,7 +29,7 @@ export const projects: Project[] = [
     ],
     techStack: ["Next.js", "TypeScript", "Tailwind CSS", "AI", "Supabase"],
     status: "live",
-    image: "/projects/life-management-system.svg",
+    image: "/projects/life-management-system.png",
     liveUrl:
       "https://life-vault-ai-git-master-yuvalzakay26-8804s-projects.vercel.app",
   },
