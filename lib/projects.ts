@@ -87,8 +87,7 @@ export const projects: Project[] = [
     techStack: ["React", "Tailwind CSS", "UI", "RTL"],
     status: "live",
     image: "/projects/yuval-digital.png",
-    liveUrl:
-      "https://yuval-digital-g29k0bymo-yuvalzakay26-8804s-projects.vercel.app",
+    liveUrl: "https://yuvaldigital.co.il/he",
   },
   {
     title: "פיצה רומי",
