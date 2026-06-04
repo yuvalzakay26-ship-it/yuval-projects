@@ -57,7 +57,12 @@ function Heading({
  */
 export default function Markdown({ content }: { content: string }) {
   return (
-    <div className="text-fg/80">
+    // `min-w-0` lets this block shrink below its content's intrinsic width when
+    // nested in a flex/grid ancestor, and `[overflow-wrap:anywhere]` (an
+    // inherited property) makes every descendant break long unbreakable tokens
+    // — file paths, package names, URLs — instead of forcing the page wider
+    // than the mobile viewport.
+    <div className="min-w-0 text-fg/80 [overflow-wrap:anywhere]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -138,7 +143,7 @@ export default function Markdown({ content }: { content: string }) {
             return (
               <code
                 dir="ltr"
-                className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[0.85em] text-accent-soft"
+                className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[0.85em] text-accent-soft [overflow-wrap:anywhere]"
               >
                 {children}
               </code>
@@ -147,10 +152,18 @@ export default function Markdown({ content }: { content: string }) {
           pre: ({ children }) => (
             <pre
               dir="ltr"
-              className="my-6 overflow-x-auto rounded-xl border border-border bg-surface-2 p-4 font-mono text-sm leading-relaxed text-fg/80"
+              className="my-6 max-w-full overflow-x-auto rounded-xl border border-border bg-surface-2 p-4 font-mono text-sm leading-relaxed text-fg/80"
             >
               {children}
             </pre>
+          ),
+          img: ({ src, alt }) => (
+            // eslint-disable-next-line @next/next/no-img-element -- markdown images are author-controlled content, not app UI
+            <img
+              src={typeof src === "string" ? src : undefined}
+              alt={alt ?? ""}
+              className="my-6 h-auto max-w-full rounded-xl"
+            />
           ),
           table: ({ children }) => (
             <div className="my-6 overflow-x-auto rounded-xl border border-border">
