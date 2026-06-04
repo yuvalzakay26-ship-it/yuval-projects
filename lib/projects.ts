@@ -48,7 +48,7 @@ export const projects: Project[] = [
     ],
     techStack: ["Next.js", "TypeScript", "Supabase", "Tailwind CSS"],
     status: "live",
-    image: "/projects/recipe-vault.svg",
+    image: "/projects/recipe-vault.png",
     liveUrl:
       "https://yuval-recipe-vault-bmjm5pwli-yuvalzakay26-8804s-projects.vercel.app",
   },
@@ -67,7 +67,7 @@ export const projects: Project[] = [
     ],
     techStack: ["React", "Tailwind CSS", "RTL"],
     status: "live",
-    image: "/projects/marzipan.svg",
+    image: "/projects/marzipan.png",
     liveUrl:
       "https://marzipan-bakery-btx22ieti-yuvalzakay26-8804s-projects.vercel.app",
   },
@@ -86,7 +86,7 @@ export const projects: Project[] = [
     ],
     techStack: ["React", "Tailwind CSS", "UI", "RTL"],
     status: "live",
-    image: "/projects/yuval-digital.svg",
+    image: "/projects/yuval-digital.png",
     liveUrl:
       "https://yuval-digital-g29k0bymo-yuvalzakay26-8804s-projects.vercel.app",
   },
@@ -105,7 +105,7 @@ export const projects: Project[] = [
     ],
     techStack: ["React", "Tailwind CSS", "Responsive UI"],
     status: "live",
-    image: "/projects/pizza-romi.svg",
+    image: "/projects/pizza-romi.png",
     liveUrl:
       "https://pizza-romi-v2-p3qxh9561-yuvalzakay26-8804s-projects.vercel.app",
   },
@@ -124,7 +124,7 @@ export const projects: Project[] = [
     ],
     techStack: ["React", "Vite", "Tailwind CSS", "Content Platform"],
     status: "live",
-    image: "/projects/yuvalcode-platform.svg",
+    image: "/projects/yuvalcode-platform.png",
     liveUrl:
       "https://yuvalcode-platform-41se2it59-yuvalzakay26-8804s-projects.vercel.app",
   },
@@ -143,7 +143,7 @@ export const projects: Project[] = [
     ],
     techStack: ["React", "Tailwind CSS", "Client Project", "RTL"],
     status: "live",
-    image: "/projects/lawyer-project.svg",
+    image: "/projects/lawyer-project.png",
     liveUrl:
       "https://ester-law-website-hc8bp0bwb-yuvalzakay26-8804s-projects.vercel.app",
   },

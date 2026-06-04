@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getProjectBySlug, projects } from "@/lib/projects";
@@ -56,13 +57,16 @@ export default async function ProjectPage({ params }: PageProps) {
         <StatusBadge status={project.status} />
       </div>
 
-      {/* Large visual placeholder */}
+      {/* Large project screenshot */}
       <div className="relative mt-6 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface-2 to-bg">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="px-4 text-center text-3xl font-bold text-fg/10">
-            {project.title}
-          </span>
-        </div>
+        <Image
+          src={project.image}
+          alt={project.title}
+          fill
+          sizes="(max-width: 768px) 100vw, 768px"
+          className="object-cover object-top"
+          priority
+        />
       </div>
 
       {/* About */}

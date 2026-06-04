@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Project } from "@/lib/projects";
 import TechBadge from "./TechBadge";
 import StatusBadge from "./StatusBadge";
@@ -10,13 +11,15 @@ interface ProjectCardProps {
 export default function ProjectCard({ project }: ProjectCardProps) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-colors hover:border-accent/50">
-      {/* Visual placeholder */}
+      {/* Project screenshot */}
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-surface-2 to-bg">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-2xl font-bold text-fg/10">
-            {project.title}
-          </span>
-        </div>
+        <Image
+          src={project.image}
+          alt={project.title}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+        />
         <div className="absolute right-3 top-3">
           <StatusBadge status={project.status} />
         </div>
