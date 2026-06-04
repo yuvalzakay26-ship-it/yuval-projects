@@ -11,6 +11,10 @@ export interface Project {
   image: string;
   liveUrl: string;
   githubUrl?: string;
+  /** What the project proves — shown only when present. */
+  proof?: string;
+  /** Internal route to a dedicated project book — shown only when present. */
+  projectBookHref?: string;
 }
 
 export const projects: Project[] = [
@@ -75,16 +79,40 @@ export const projects: Project[] = [
     title: "יובל דיגיטל",
     slug: "yuval-digital",
     shortDescription:
-      "אתר אישי להצגת שירותים דיגיטליים, מיתוג, בניית אתרים ופתרונות לעסקים.",
+      "אתר שיווק ויצירת לידים דו־לשוני לסטודיו דיגיטלי, עם תמיכה מלאה ב־RTL/LTR, SEO ופריסה לפרודקשן.",
     longDescription:
-      "אתר אישי ומקצועי המרכז את השירותים הדיגיטליים שאני מציע — מיתוג, בניית אתרים ופתרונות מותאמים לעסקים. האתר נבנה כדי לשדר אמינות ומקצועיות, עם מבנה ברור שמוביל את המבקר מהיכרות ועד יצירת קשר.",
+      "Yuval Digital הוא אתר שיווק ויצירת לידים דו־לשוני עבור סטודיו דיגיטלי עצמאי שמציג שירותי בניית אתרים, דפי נחיתה, אוטומציות ותהליכי עבודה מבוססי AI לעסקים קטנים ובינוניים בישראל.",
     whatIBuilt: [
-      "עמוד נחיתה מקצועי להצגת השירותים",
-      "מבנה תוכן ברור שמוביל ליצירת קשר",
-      "מיתוג ויזואלי אחיד לאורך האתר",
-      "ביצועים גבוהים ותאימות מלאה למובייל",
+      "אתר שיווק דו־לשוני בעברית ובאנגלית",
+      "מבנה RTL/LTR לפי שפה",
+      "דף בית שיווקי הבנוי כמשפך המרה",
+      "דפי שירותים מפורטים",
+      "דף אודות",
+      "דפי פרטיות ונגישות",
+      "מערכת יצירת לידים עם טופס יצירת קשר",
+      "קישורי WhatsApp, טלפון ואימייל",
+      "מערכת SEO עם metadata, canonical, hreflang ו־JSON-LD",
+      "מצב כהה/בהיר",
+      "מערכת נגישות",
+      "אופטימיזציות ביצועים ו־static prerendering",
     ],
-    techStack: ["React", "Tailwind CSS", "UI", "RTL"],
+    techStack: [
+      "React",
+      "Vite",
+      "vite-react-ssg",
+      "React Router",
+      "react-helmet-async",
+      "CSS",
+      "Vercel",
+      "Upstash",
+      "n8n",
+      "Airtable",
+      "Google Analytics",
+      "Microsoft Clarity",
+    ],
+    proof:
+      "הפרויקט מוכיח יכולת לבנות אתר עסקי אמיתי מקצה לקצה: מיתוג, חוויית משתמש, נגישות, SEO, ביצועים, יצירת לידים, תמיכה דו־לשונית ופריסה לפרודקשן.",
+    projectBookHref: "/projects/yuval-digital/project-book",
     status: "live",
     image: "/projects/yuval-digital.png",
     liveUrl: "https://yuvaldigital.co.il/he",

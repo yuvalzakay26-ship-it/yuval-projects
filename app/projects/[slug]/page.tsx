@@ -97,6 +97,15 @@ export default async function ProjectPage({ params }: PageProps) {
         </div>
       </Section>
 
+      {/* What the project proves */}
+      {project.proof && (
+        <Section title="מה הפרויקט מוכיח">
+          <p className="text-base leading-relaxed text-fg/70">
+            {project.proof}
+          </p>
+        </Section>
+      )}
+
       {/* Links */}
       <Section title="קישורים">
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -109,6 +118,16 @@ export default async function ProjectPage({ params }: PageProps) {
             פתח פרויקט
             <span aria-hidden>↗</span>
           </a>
+
+          {project.projectBookHref && (
+            <Link
+              href={project.projectBookHref}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-sm font-semibold text-fg transition-colors hover:border-accent/50"
+            >
+              קרא את ספר הפרויקט
+              <span aria-hidden>←</span>
+            </Link>
+          )}
 
           {project.githubUrl && (
             <a
