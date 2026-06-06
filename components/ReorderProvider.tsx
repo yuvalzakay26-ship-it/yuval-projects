@@ -97,6 +97,11 @@ interface ReorderContextValue {
   editMode: boolean;
   /** Move the project at `index` up (-1) or down (+1). */
   move: (index: number, direction: -1 | 1) => void;
+  /**
+   * Move the project from `fromIndex` to `toIndex`, shifting the rest. Used by
+   * drag-and-drop, where a row can jump several positions in one gesture.
+   */
+  reorder: (fromIndex: number, toIndex: number) => void;
   /** Clear the saved order and restore the default from `lib/projects.ts`. */
   reset: () => void;
 }
@@ -192,6 +197,32 @@ export default function ReorderProvider({
     });
   }, []);
 
+  const reorder = useCallback((fromIndex: number, toIndex: number) => {
+    setOrder((current) => {
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= current.length ||
+        toIndex >= current.length
+      ) {
+        return current;
+      }
+      const next = current.slice();
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      try {
+        localStorage.setItem(
+          ORDER_KEY,
+          JSON.stringify(next.map((p) => p.slug)),
+        );
+      } catch {
+        // Ignore storage failures — the visual order still updates this session.
+      }
+      return next;
+    });
+  }, []);
+
   const reset = useCallback(() => {
     try {
       localStorage.removeItem(ORDER_KEY);
@@ -202,8 +233,8 @@ export default function ReorderProvider({
   }, [projects]);
 
   const value = useMemo<ReorderContextValue>(
-    () => ({ order, editMode, move, reset }),
-    [order, editMode, move, reset],
+    () => ({ order, editMode, move, reorder, reset }),
+    [order, editMode, move, reorder, reset],
   );
 
   return (
