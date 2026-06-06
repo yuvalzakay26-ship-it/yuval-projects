@@ -24,7 +24,9 @@ import type { Project } from "@/lib/projects";
  * `start_url` (`/`) with no query string, so the URL alone can't be relied on.
  * Normal browser tabs are never standalone, so plain-website visitors stay
  * clean. The custom order also lives entirely in this browser's localStorage.
- * The canonical order always remains the array in `lib/projects.ts`.
+ * The owner can additionally pin the current order as a per-device "default"
+ * (also local only); "איפוס סדר" then restores that default instead of the code
+ * order. The canonical public order always remains the array in `lib/projects.ts`.
  *
  * State lives here (rather than inside the grid) so that the header menu
  * button, the reorder panel and the grid can all read and mutate the same
@@ -33,6 +35,16 @@ import type { Project } from "@/lib/projects";
 
 /** Bump the suffix if the stored shape ever changes. */
 const ORDER_KEY = "yuval-projects:project-order:v1";
+/**
+ * Per-device "default" order. This is the owner's own baseline on this browser:
+ * "איפוס סדר" restores *this* order rather than the code order, when present.
+ * Saved separately from {@link ORDER_KEY} so the active order and the saved
+ * default are independent — saving a default never disturbs the active order,
+ * and resetting the active order never disturbs the saved default. Still a
+ * purely local convenience: the canonical public order remains the array in
+ * `lib/projects.ts`, which the client never touches.
+ */
+const DEFAULT_ORDER_KEY = "yuval-projects:project-default-order:v1";
 /**
  * Persisted "edit mode is on in this browser" flag. Kept separate from the
  * order key so turning edit mode off never disturbs a saved custom order.
@@ -87,6 +99,26 @@ function orderFromSlugs(savedSlugs: string[], projects: Project[]): Project[] {
   return ordered;
 }
 
+/**
+ * Read the saved per-device default order as a clean slug list, or `null` if
+ * none is saved / the stored value is missing, corrupt or empty. Shared by the
+ * mount effect and {@link ReorderProvider.reset} so both agree on what "a valid
+ * local default exists" means.
+ */
+function readDefaultSlugs(): string[] | null {
+  try {
+    const raw = localStorage.getItem(DEFAULT_ORDER_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    const slugs = parsed.filter((s): s is string => typeof s === "string");
+    return slugs.length > 0 ? slugs : null;
+  } catch {
+    // Unavailable storage (private mode) or corrupt JSON — treat as "no default".
+    return null;
+  }
+}
+
 interface ReorderContextValue {
   /** Projects in the current display order. */
   order: Project[];
@@ -102,8 +134,23 @@ interface ReorderContextValue {
    * drag-and-drop, where a row can jump several positions in one gesture.
    */
   reorder: (fromIndex: number, toIndex: number) => void;
-  /** Clear the saved order and restore the default from `lib/projects.ts`. */
+  /**
+   * Reset the active order. If a per-device default has been saved, restore
+   * that; otherwise fall back to the original order from `lib/projects.ts`.
+   */
   reset: () => void;
+  /**
+   * Save the current active order as this device's default. The active order
+   * itself is left untouched.
+   */
+  setAsDefault: () => void;
+  /**
+   * Forget the per-device default *and* the active order, restoring the
+   * original order from `lib/projects.ts`.
+   */
+  resetToOriginal: () => void;
+  /** True when a per-device default order is currently saved. */
+  hasDefault: boolean;
 }
 
 const ReorderContext = createContext<ReorderContextValue | null>(null);
@@ -129,6 +176,9 @@ export default function ReorderProvider({
   // browser-specific (URL flag + saved order) is applied after mount.
   const [order, setOrder] = useState<Project[]>(projects);
   const [editMode, setEditMode] = useState(false);
+  // Whether a per-device default order is currently saved. Drives the optional
+  // "restore original" control in the UI. Applied after mount like the order.
+  const [hasDefault, setHasDefault] = useState(false);
 
   useEffect(() => {
     // Edit mode is active if ANY of these hold:
@@ -162,6 +212,8 @@ export default function ReorderProvider({
     }
 
     setEditMode(urlOptIn || persisted || standalone);
+
+    setHasDefault(readDefaultSlugs() !== null);
 
     try {
       const raw = localStorage.getItem(ORDER_KEY);
@@ -224,17 +276,84 @@ export default function ReorderProvider({
   }, []);
 
   const reset = useCallback(() => {
+    // Prefer a saved per-device default; only fall back to the code order when
+    // none exists. When restoring a default we persist it as the active order
+    // too, so a refresh keeps showing it.
+    const defaultSlugs = readDefaultSlugs();
+    if (defaultSlugs) {
+      const next = orderFromSlugs(defaultSlugs, projects);
+      try {
+        localStorage.setItem(
+          ORDER_KEY,
+          JSON.stringify(next.map((p) => p.slug)),
+        );
+      } catch {
+        // Ignore storage failures — the in-memory order still updates.
+      }
+      setOrder(next);
+      return;
+    }
+
     try {
       localStorage.removeItem(ORDER_KEY);
     } catch {
-      // Ignore — we still restore the default order in memory below.
+      // Ignore — we still restore the original order in memory below.
     }
     setOrder(projects);
   }, [projects]);
 
+  const setAsDefault = useCallback(() => {
+    // Snapshot the *current* active order into the default slot, leaving the
+    // active order untouched. Read it via the functional updater to avoid a
+    // stale closure over `order`.
+    setOrder((current) => {
+      try {
+        localStorage.setItem(
+          DEFAULT_ORDER_KEY,
+          JSON.stringify(current.map((p) => p.slug)),
+        );
+        setHasDefault(true);
+      } catch {
+        // Storage unavailable (private mode) — nothing saved, order unchanged.
+      }
+      return current;
+    });
+  }, []);
+
+  const resetToOriginal = useCallback(() => {
+    // Forget both the saved default and the active order, returning to the
+    // canonical code order from `lib/projects.ts`.
+    try {
+      localStorage.removeItem(DEFAULT_ORDER_KEY);
+      localStorage.removeItem(ORDER_KEY);
+    } catch {
+      // Ignore — we still restore the original order in memory below.
+    }
+    setHasDefault(false);
+    setOrder(projects);
+  }, [projects]);
+
   const value = useMemo<ReorderContextValue>(
-    () => ({ order, editMode, move, reorder, reset }),
-    [order, editMode, move, reorder, reset],
+    () => ({
+      order,
+      editMode,
+      move,
+      reorder,
+      reset,
+      setAsDefault,
+      resetToOriginal,
+      hasDefault,
+    }),
+    [
+      order,
+      editMode,
+      move,
+      reorder,
+      reset,
+      setAsDefault,
+      resetToOriginal,
+      hasDefault,
+    ],
   );
 
   return (

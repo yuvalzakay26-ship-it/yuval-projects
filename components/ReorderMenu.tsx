@@ -141,7 +141,8 @@ function SortableProjectRow({
 }
 
 export default function ReorderMenu() {
-  const { editMode, order, reorder, reset } = useReorder();
+  const { editMode, order, reorder, reset, setAsDefault, resetToOriginal, hasDefault } =
+    useReorder();
   const [menuOpen, setMenuOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
@@ -306,10 +307,6 @@ export default function ReorderMenu() {
                 סגור
               </button>
             </div>
-            <p className="text-sm leading-relaxed text-fg/50">
-              הסדר נשמר במכשיר הזה בלבד. אם תרצה להפוך אותו לסדר הקבוע באתר,
-              נעדכן אחר כך את קובץ הפרויקטים.
-            </p>
           </div>
 
           {/* Project rows — the only scrolling region. `min-h-0` lets this
@@ -357,22 +354,54 @@ export default function ReorderMenu() {
             )}
           </DndContext>
 
-          {/* Footer actions (fixed at bottom, never scrolls) */}
-          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+          {/* Footer actions (fixed at bottom, never scrolls). Laid out as a
+              column so the long Hebrew labels stay full-width and tappable on
+              narrow phones (360px) without crowding or horizontal overflow. */}
+          <div className="flex shrink-0 flex-col gap-3 border-t border-border px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+            <p className="text-xs leading-relaxed text-fg/50">
+              הסדר נשמר במכשיר הזה בלבד. כדי להפוך אותו לסדר הציבורי באתר, צריך
+              לעדכן את קובץ הפרויקטים בקוד.
+            </p>
+
+            {/* Primary new action: save the current dragged order as this
+                device's default. */}
             <button
               type="button"
-              onClick={reset}
-              className="inline-flex min-h-[44px] items-center rounded-xl border border-border bg-surface px-4 text-sm font-medium text-fg/70 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
+              onClick={setAsDefault}
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-accent px-4 text-center text-sm font-semibold leading-tight text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
             >
-              איפוס סדר
+              הגדר כסדר ברירת מחדל
             </button>
-            <button
-              type="button"
-              onClick={() => setPanelOpen(false)}
-              className="inline-flex min-h-[44px] items-center rounded-xl bg-accent px-5 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
-            >
-              סגור
-            </button>
+
+            {/* Secondary row: reset to (local default or code order) + close. */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={reset}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-3 text-center text-sm font-medium leading-tight text-fg/70 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
+              >
+                איפוס סדר
+              </button>
+              <button
+                type="button"
+                onClick={() => setPanelOpen(false)}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-3 text-center text-sm font-medium leading-tight text-fg/70 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
+              >
+                סגור
+              </button>
+            </div>
+
+            {/* Optional tertiary action: only meaningful once a per-device
+                default exists. Restores the original code order. */}
+            {hasDefault && (
+              <button
+                type="button"
+                onClick={resetToOriginal}
+                className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg px-3 text-center text-xs font-medium leading-tight text-fg/45 underline-offset-4 transition-colors hover:text-fg/70 hover:underline active:scale-95"
+              >
+                איפוס לברירת מחדל מקורית
+              </button>
+            )}
           </div>
           </div>,
           document.body,
