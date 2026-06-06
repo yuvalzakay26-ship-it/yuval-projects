@@ -8,6 +8,10 @@ interface PageToolbarProps {
    *  (e.g. the home page) only the app bar is rendered. */
   backHref?: string;
   backLabel?: string;
+  /** Optional circular control(s) shown at the end (left in RTL), before the
+   *  theme toggle. The home page passes its edit-mode menu button here; it is
+   *  self-gating and renders nothing for normal visitors. */
+  actions?: React.ReactNode;
 }
 
 const BRAND = "יובל פרויקטים";
@@ -26,7 +30,11 @@ const BRAND = "יובל פרויקטים";
  * Hebrew date underneath; the end (left) holds the circular theme-toggle
  * control. On internal pages a compact back-link pill sits just below the bar.
  */
-export default function PageToolbar({ backHref, backLabel }: PageToolbarProps) {
+export default function PageToolbar({
+  backHref,
+  backLabel,
+  actions,
+}: PageToolbarProps) {
   return (
     <>
       <header className="-mx-5 -mt-4 border-b border-border bg-surface/80 backdrop-blur sm:-mx-8 sm:-mt-6">
@@ -38,7 +46,10 @@ export default function PageToolbar({ backHref, backLabel }: PageToolbarProps) {
           </div>
 
           {/* Circular control(s) (end / left in RTL) */}
-          <ThemeToggle />
+          <div className="flex shrink-0 items-center gap-2">
+            {actions}
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
