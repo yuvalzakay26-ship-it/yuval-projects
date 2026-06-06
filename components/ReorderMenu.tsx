@@ -13,7 +13,7 @@ import { useReorder } from "./ReorderProvider";
  * on the project cards themselves.
  */
 export default function ReorderMenu() {
-  const { editMode, order, move, reset } = useReorder();
+  const { editMode, order, move, reset, disableEditMode } = useReorder();
   const [menuOpen, setMenuOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -96,6 +96,23 @@ export default function ReorderMenu() {
                 ☰
               </span>
               סידור פרויקטים
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                // Close everything and drop out of edit mode immediately. The
+                // saved project order is intentionally left untouched.
+                setMenuOpen(false);
+                setPanelOpen(false);
+                disableEditMode();
+              }}
+              className="flex w-full items-center gap-2 border-t border-border px-4 py-3 text-right text-sm font-medium text-fg/60 transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              <span aria-hidden className="text-base leading-none">
+                ✕
+              </span>
+              כבה מצב עריכה
             </button>
           </div>
         )}
