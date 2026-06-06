@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Heebo } from "next/font/google";
 import "./globals.css";
-import ThemeToggle from "@/components/ThemeToggle";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 const heebo = Heebo({
@@ -65,7 +64,6 @@ export default function RootLayout({
       </head>
       <body className="font-sans">
         <ServiceWorkerRegister />
-        <ThemeToggle />
         {children}
       </body>
     </html>

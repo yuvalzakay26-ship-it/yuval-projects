@@ -5,9 +5,13 @@ import { useEffect, useState } from "react";
 type Theme = "dark" | "light";
 
 /**
- * Floating theme switch. The actual class is applied to <html> by an inline
+ * Inline theme switch. The actual class is applied to <html> by an inline
  * script in the layout (before paint) to avoid a flash; this component just
  * reads the current state on mount, flips it, and persists to localStorage.
+ *
+ * It is rendered inside {@link PageToolbar} (in normal document flow) rather
+ * than fixed-positioned, so it never floats over headings, screenshots or
+ * cards.
  */
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
@@ -41,7 +45,7 @@ export default function ThemeToggle() {
       onClick={toggle}
       aria-label={label}
       title={label}
-      className="fixed left-4 top-4 z-50 inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3 py-2 text-xs font-medium text-fg/80 shadow-sm backdrop-blur transition-colors hover:border-accent/50 hover:text-fg"
+      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-surface/80 px-3 py-2 text-xs font-medium text-fg/80 shadow-sm backdrop-blur transition-colors hover:border-accent/50 hover:text-fg"
     >
       {/* Keep markup identical pre/mount; only swap the glyph once mounted. */}
       <span aria-hidden className="text-sm leading-none">

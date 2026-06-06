@@ -37,6 +37,14 @@
 
   body {
     @apply bg-bg text-fg antialiased;
+    /* Subtle top glow adds depth so neither theme reads as a flat fill — kept
+     * gentle so the dark theme's premium feel is preserved. */
+    background-image: radial-gradient(
+      120% 60% at 50% 0%,
+      rgb(var(--color-accent) / 0.06),
+      transparent 60%
+    );
+    background-attachment: fixed;
     transition: background-color 0.25s ease, color 0.25s ease;
   }
 }
