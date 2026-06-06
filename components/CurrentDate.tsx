@@ -36,7 +36,8 @@ export default function CurrentDate({
     <time
       // No dateTime until mounted — keeps SSR/CSR markup matched.
       suppressHydrationWarning
-      className={`block text-xs leading-none text-fg/45 ${className}`}
+      // Typography is left to the caller; only structural defaults here.
+      className={`block leading-none ${className}`}
       // Reserve a line of height so the toolbar doesn't jump once the date sets.
       style={{ minHeight: "1rem" }}
     >

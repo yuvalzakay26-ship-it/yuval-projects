@@ -45,13 +45,14 @@ export default function ThemeToggle() {
       onClick={toggle}
       aria-label={label}
       title={label}
-      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-surface/80 px-3 py-2 text-xs font-medium text-fg/80 shadow-sm backdrop-blur transition-colors hover:border-accent/50 hover:text-fg"
+      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-fg/80 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
     >
-      {/* Keep markup identical pre/mount; only swap the glyph once mounted. */}
-      <span aria-hidden className="text-sm leading-none">
+      {/* Icon-only, round app-control. Keep glyph identical pre/mount; only
+          swap once mounted so SSR and first client render match. The text
+          label stays accessible via aria-label / title. */}
+      <span aria-hidden className="text-base leading-none">
         {mounted ? (isDark ? "☀️" : "🌙") : "🌙"}
       </span>
-      <span suppressHydrationWarning>{mounted ? label : "מצב בהיר"}</span>
     </button>
   );
 }
