@@ -108,21 +108,21 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
   return (
     <>
       {showControls && (
-        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-border bg-surface/80 p-4 backdrop-blur">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-fg">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-border bg-surface/80 p-4 backdrop-blur sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+            <span className="inline-flex items-center gap-2 text-base font-semibold text-fg">
+              <span className="h-2 w-2 rounded-full bg-accent" />
               סידור פרויקטים
             </span>
             <button
               type="button"
               onClick={resetOrder}
-              className="inline-flex items-center rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-fg/80 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
+              className="inline-flex min-h-[44px] items-center rounded-xl border border-border bg-surface px-4 text-sm font-medium text-fg/70 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
             >
               איפוס סדר
             </button>
           </div>
-          <p className="text-xs leading-relaxed text-fg/50">
+          <p className="text-sm leading-relaxed text-fg/50">
             מצב סידור מקומי — הסדר נשמר בדפדפן הזה בלבד.
           </p>
         </div>
@@ -132,9 +132,12 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
         {order.map((project, index) => (
           <div key={project.slug} className="flex flex-col gap-2">
             {showControls && (
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface-2/60 px-3 py-2">
-                <span className="truncate text-xs font-medium text-fg/60">
-                  {index + 1}. {project.title}
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-2/60 p-2 pr-3">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-accent/10 text-xs font-bold text-accent">
+                  {index + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg/75">
+                  {project.title}
                 </span>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
@@ -143,7 +146,7 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
                     disabled={index === 0}
                     aria-label={`הזז את ${project.title} למעלה`}
                     title="למעלה"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-fg/80 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:text-fg/80"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface text-lg text-fg/80 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none disabled:hover:border-border disabled:hover:text-fg/80"
                   >
                     <span aria-hidden>↑</span>
                   </button>
@@ -153,7 +156,7 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
                     disabled={index === order.length - 1}
                     aria-label={`הזז את ${project.title} למטה`}
                     title="למטה"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-fg/80 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:text-fg/80"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface text-lg text-fg/80 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none disabled:hover:border-border disabled:hover:text-fg/80"
                   >
                     <span aria-hidden>↓</span>
                   </button>
