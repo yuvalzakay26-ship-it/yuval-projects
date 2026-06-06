@@ -1,4 +1,4 @@
-import ProjectCard from "@/components/ProjectCard";
+import ProjectGrid from "@/components/ProjectGrid";
 import PageToolbar from "@/components/PageToolbar";
 import { projects } from "@/lib/projects";
 
@@ -22,12 +22,8 @@ export default function HomePage() {
         </p>
       </header>
 
-      {/* Project grid */}
-      <section className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        {projects.map((project) => (
-          <ProjectCard key={project.slug} project={project} />
-        ))}
-      </section>
+      {/* Project grid (with opt-in, local-only reorder mode via ?edit=1) */}
+      <ProjectGrid projects={projects} />
 
       <footer className="mt-16 text-center text-sm text-fg/30">
         © {new Date().getFullYear()} יובל • נבנה ב-Next.js
