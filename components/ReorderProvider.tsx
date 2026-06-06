@@ -15,12 +15,16 @@ import type { Project } from "@/lib/projects";
  *
  * This is purely a browser convenience for the site owner — there is no
  * database, auth, admin or CMS involved. Normal visitors never see any
- * controls. Edit mode is opt-in: visiting `?edit=1` once activates it and
- * persists a flag in this browser's localStorage, so it keeps working on plain
- * `/` visits afterwards — including inside the installed PWA, which always
- * launches at the manifest `start_url` (`/`) without the query string. The
- * custom order also lives entirely in this browser's localStorage. The
- * canonical order always remains the array in `lib/projects.ts`.
+ * controls. Edit mode turns on when any of three things is true:
+ *   1. the URL opts in this visit (`?edit=1`), which also persists a flag;
+ *   2. that flag was persisted by an earlier `?edit=1` visit; or
+ *   3. the page is running as an installed / standalone PWA.
+ * The standalone branch is what makes the controls available straight from the
+ * phone home-screen icon — an installed PWA launches at the manifest
+ * `start_url` (`/`) with no query string, so the URL alone can't be relied on.
+ * Normal browser tabs are never standalone, so plain-website visitors stay
+ * clean. The custom order also lives entirely in this browser's localStorage.
+ * The canonical order always remains the array in `lib/projects.ts`.
  *
  * State lives here (rather than inside the grid) so that the header menu
  * button, the reorder panel and the grid can all read and mutate the same
@@ -34,6 +38,30 @@ const ORDER_KEY = "yuval-projects:project-order:v1";
  * order key so turning edit mode off never disturbs a saved custom order.
  */
 const EDIT_MODE_KEY = "yuval-projects:edit-mode:v1";
+
+/**
+ * True when the page is running as an installed / standalone PWA rather than in
+ * a normal browser tab. Covers the standard `display-mode: standalone` media
+ * query plus iOS Safari's non-standard `navigator.standalone`. Always called
+ * after mount, so `window` is guaranteed to exist; still fully guarded so a
+ * missing `matchMedia` (very old browsers) degrades to "not standalone".
+ */
+function isStandalone(): boolean {
+  try {
+    const mql = window.matchMedia?.("(display-mode: standalone)");
+    if (mql?.matches) return true;
+    // iOS Safari home-screen apps: non-standard boolean, typed loosely.
+    if (
+      (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+      true
+    ) {
+      return true;
+    }
+  } catch {
+    // Any access failure → treat as a normal browser tab.
+  }
+  return false;
+}
 
 /**
  * Build the display order from a list of saved slugs, recovering gracefully:
@@ -72,8 +100,10 @@ interface ReorderContextValue {
   /** Clear the saved order and restore the default from `lib/projects.ts`. */
   reset: () => void;
   /**
-   * Turn edit mode off for this browser: remove the persisted flag and hide all
-   * edit controls immediately. Leaves any saved custom order untouched.
+   * Turn edit mode off: remove the persisted flag and hide all controls for the
+   * current session immediately. In a standalone PWA the standalone display
+   * mode re-enables edit mode on the next launch (acceptable — this is a
+   * private tool). The saved custom order is always left untouched.
    */
   disableEditMode: () => void;
 }
@@ -103,10 +133,16 @@ export default function ReorderProvider({
   const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
-    // Edit mode is active if the URL opts in this visit, OR it was persisted by
-    // an earlier `?edit=1` visit. Opting in via the URL also persists the flag
-    // so plain `/` visits (and the installed PWA, which always starts at `/`)
-    // keep showing the controls.
+    // Edit mode is active if ANY of these hold:
+    //   - the URL opts in this visit (`?edit=1`),
+    //   - it was persisted by an earlier `?edit=1` visit, or
+    //   - the app is running as an installed/standalone PWA.
+    //
+    // The standalone branch is what makes edit controls available straight from
+    // the phone home-screen icon: an installed PWA launches at the manifest
+    // `start_url` (`/`) with no query string, so we detect the standalone
+    // display mode instead of relying on the URL. Normal browser tabs are never
+    // standalone, so plain-website visitors stay clean.
     const params = new URLSearchParams(window.location.search);
     const urlOptIn = params.get("edit") === "1";
 
@@ -117,6 +153,8 @@ export default function ReorderProvider({
       // Storage unavailable (private mode) — fall back to URL-only this session.
     }
 
+    const standalone = isStandalone();
+
     if (urlOptIn && !persisted) {
       try {
         localStorage.setItem(EDIT_MODE_KEY, "1");
@@ -125,7 +163,7 @@ export default function ReorderProvider({
       }
     }
 
-    setEditMode(urlOptIn || persisted);
+    setEditMode(urlOptIn || persisted || standalone);
 
     try {
       const raw = localStorage.getItem(ORDER_KEY);
