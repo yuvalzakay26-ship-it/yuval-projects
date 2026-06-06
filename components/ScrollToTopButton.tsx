@@ -22,8 +22,12 @@ import { useEffect, useState } from "react";
  * "is the modal open?" wiring is needed, and the reorder flow is untouched.
  */
 
-/** Scroll distance (px) past which the button becomes visible. */
-const THRESHOLD = 300;
+/**
+ * Scroll distance (px) past which the button becomes visible. Kept fairly low so
+ * the control is useful on shorter pages (home, project detail) and not just on
+ * very long Project Book pages.
+ */
+const THRESHOLD = 220;
 
 export default function ScrollToTopButton() {
   // Render nothing until mounted so SSR and the first client render match
@@ -59,14 +63,14 @@ export default function ScrollToTopButton() {
       // Fixed, RTL start (right) + bottom corner, honouring safe-area insets so
       // it clears the home indicator / rounded corners on mobile. The low z-40
       // keeps it beneath the opaque reorder manager overlay (z-[60]).
-      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-fg/80 shadow-lg transition-all duration-200 hover:border-accent/50 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg active:scale-95 ${
+      className={`fixed bottom-[max(1.5rem,calc(env(safe-area-inset-bottom)+0.75rem))] right-[max(1.5rem,calc(env(safe-area-inset-right)+0.75rem))] z-40 inline-flex h-14 w-14 items-center justify-center rounded-full border border-border bg-surface text-fg/80 shadow-lg transition-all duration-200 hover:border-accent/50 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg active:scale-95 ${
         visible
           ? "translate-y-0 opacity-100"
           : "pointer-events-none translate-y-2 opacity-0"
       }`}
     >
       {/* Icon-only round control; the accessible label lives on the button. */}
-      <span aria-hidden className="text-lg leading-none">
+      <span aria-hidden className="text-2xl leading-none">
         ↑
       </span>
     </button>
