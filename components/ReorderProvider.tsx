@@ -99,13 +99,6 @@ interface ReorderContextValue {
   move: (index: number, direction: -1 | 1) => void;
   /** Clear the saved order and restore the default from `lib/projects.ts`. */
   reset: () => void;
-  /**
-   * Turn edit mode off: remove the persisted flag and hide all controls for the
-   * current session immediately. In a standalone PWA the standalone display
-   * mode re-enables edit mode on the next launch (acceptable — this is a
-   * private tool). The saved custom order is always left untouched.
-   */
-  disableEditMode: () => void;
 }
 
 const ReorderContext = createContext<ReorderContextValue | null>(null);
@@ -208,20 +201,9 @@ export default function ReorderProvider({
     setOrder(projects);
   }, [projects]);
 
-  const disableEditMode = useCallback(() => {
-    try {
-      // Only the edit-mode flag — never the order key, so a saved custom order
-      // survives turning edit mode off (and reappears if it's switched on again).
-      localStorage.removeItem(EDIT_MODE_KEY);
-    } catch {
-      // Ignore — we still drop out of edit mode in memory below.
-    }
-    setEditMode(false);
-  }, []);
-
   const value = useMemo<ReorderContextValue>(
-    () => ({ order, editMode, move, reset, disableEditMode }),
-    [order, editMode, move, reset, disableEditMode],
+    () => ({ order, editMode, move, reset }),
+    [order, editMode, move, reset],
   );
 
   return (

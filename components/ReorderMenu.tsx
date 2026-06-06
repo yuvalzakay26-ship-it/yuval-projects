@@ -11,9 +11,8 @@ import { useReorder } from "./ReorderProvider";
  * invisible to normal visitors.
  *
  * Tapping it opens a tiny dropdown menu. "סידור פרויקטים" opens a full-screen
- * reorder manager (not a bottom sheet — that collapsed unreliably on mobile);
- * "הסתר כלי עריכה" hides the edit tools for the session. No reorder controls
- * ever appear on the project cards themselves.
+ * reorder manager (not a bottom sheet — that collapsed unreliably on mobile).
+ * No reorder controls ever appear on the project cards themselves.
  */
 
 /** Short, muted status label shown next to each row's title. */
@@ -24,7 +23,7 @@ const STATUS_LABEL: Record<ProjectStatus, string> = {
 };
 
 export default function ReorderMenu() {
-  const { editMode, order, move, reset, disableEditMode } = useReorder();
+  const { editMode, order, move, reset } = useReorder();
   const [menuOpen, setMenuOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -107,23 +106,6 @@ export default function ReorderMenu() {
                 ☰
               </span>
               סידור פרויקטים
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                // Hide the edit tools for the session. The saved project order
-                // is intentionally left untouched.
-                setMenuOpen(false);
-                setPanelOpen(false);
-                disableEditMode();
-              }}
-              className="flex w-full items-center gap-2 border-t border-border px-4 py-2.5 text-right text-xs font-medium text-fg/50 transition-colors hover:bg-surface-2 hover:text-fg/80"
-            >
-              <span aria-hidden className="text-sm leading-none">
-                ✕
-              </span>
-              הסתר כלי עריכה
             </button>
           </div>
         )}
