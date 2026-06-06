@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -16,6 +16,7 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
+  arrayMove,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
@@ -32,6 +33,13 @@ import { useReorder } from "./ReorderProvider";
  * Tapping it opens a tiny dropdown menu. "סידור פרויקטים" opens a full-screen
  * reorder manager (not a bottom sheet — that collapsed unreliably on mobile).
  * No reorder controls ever appear on the project cards themselves.
+ *
+ * Safety model: the manager edits a *private draft* order. Dragging, resetting
+ * and so on only mutate that draft — the live grid and localStorage are left
+ * alone until the owner explicitly taps "אשר סדר חדש" (which commits the draft
+ * via {@link useReorder().commitOrder}). Trying to leave with unsaved draft
+ * changes (top "סגור", Escape) raises a confirmation popup so an accidental
+ * mobile drag can never silently change the public-looking order.
  */
 
 /** Short, muted status label shown next to each row's title. */
@@ -140,13 +148,35 @@ function SortableProjectRow({
   );
 }
 
+/** True when two project lists hold the same slugs in the same positions. */
+function sameOrder(a: Project[], b: Project[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((p, i) => p.slug === b[i].slug);
+}
+
 export default function ReorderMenu() {
-  const { editMode, order, reorder, reset, setAsDefault, resetToOriginal, hasDefault } =
-    useReorder();
+  const {
+    editMode,
+    order,
+    originalOrder,
+    commitOrder,
+    getResetOrder,
+    saveAsDefault,
+    hasDefault,
+  } = useReorder();
   const [menuOpen, setMenuOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  // The manager's private working copy. Dragging/resetting mutate only this;
+  // the live grid + localStorage change only when the owner confirms.
+  const [draft, setDraft] = useState<Project[]>(order);
+  // Whether the unsaved-changes popup is currently showing.
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // The draft is "dirty" when it no longer matches the live active order. Only
+  // a dirty draft triggers the leave-confirmation popup.
+  const isDirty = useMemo(() => !sameOrder(draft, order), [draft, order]);
 
   // Sensors tuned for both desktop mouse and mobile touch. The small
   // pointer/touch activation distances/delays let a tap-and-scroll stay a
@@ -163,6 +193,35 @@ export default function ReorderMenu() {
     }),
   );
 
+  /** Open the manager with a fresh draft cloned from the live active order. */
+  function openPanel() {
+    setMenuOpen(false);
+    setDraft(order);
+    setConfirmOpen(false);
+    setPanelOpen(true);
+  }
+
+  /** Tear down the manager (discarding the in-memory draft). */
+  function closePanel() {
+    setConfirmOpen(false);
+    setPanelOpen(false);
+  }
+
+  /**
+   * A close *request* (top "סגור", Escape). If the draft has unsaved changes we
+   * ask first; otherwise we leave immediately.
+   */
+  function requestClose() {
+    if (isDirty) setConfirmOpen(true);
+    else closePanel();
+  }
+
+  /** Commit the draft as the live order and leave. */
+  function confirmOrder() {
+    commitOrder(draft);
+    closePanel();
+  }
+
   function handleDragStart(event: DragStartEvent) {
     setActiveSlug(String(event.active.id));
   }
@@ -171,17 +230,20 @@ export default function ReorderMenu() {
     setActiveSlug(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const from = order.findIndex((p) => p.slug === active.id);
-    const to = order.findIndex((p) => p.slug === over.id);
-    if (from === -1 || to === -1) return;
-    reorder(from, to);
+    // Reorder the *draft* only — nothing is persisted or shown on the grid yet.
+    setDraft((current) => {
+      const from = current.findIndex((p) => p.slug === active.id);
+      const to = current.findIndex((p) => p.slug === over.id);
+      if (from === -1 || to === -1) return current;
+      return arrayMove(current, from, to);
+    });
   }
 
   const activeProject = activeSlug
-    ? order.find((p) => p.slug === activeSlug)
+    ? draft.find((p) => p.slug === activeSlug)
     : null;
   const activeIndex = activeSlug
-    ? order.findIndex((p) => p.slug === activeSlug)
+    ? draft.findIndex((p) => p.slug === activeSlug)
     : -1;
 
   // Close the dropdown on outside click or Escape.
@@ -206,6 +268,9 @@ export default function ReorderMenu() {
   }, [menuOpen]);
 
   // Lock background scroll and support Escape while the manager is open.
+  // Escape routes through the same guarded close path as the top "סגור" button:
+  // if the unsaved-changes popup is showing it just dismisses that (≈ "המשך
+  // עריכה"); otherwise it requests a close (which may re-raise the popup).
   useEffect(() => {
     if (!panelOpen) return;
 
@@ -213,7 +278,10 @@ export default function ReorderMenu() {
     document.body.style.overflow = "hidden";
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setPanelOpen(false);
+      if (e.key !== "Escape") return;
+      if (confirmOpen) setConfirmOpen(false);
+      else if (isDirty) setConfirmOpen(true);
+      else closePanel();
     }
     document.addEventListener("keydown", onKeyDown);
 
@@ -221,7 +289,7 @@ export default function ReorderMenu() {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [panelOpen]);
+  }, [panelOpen, confirmOpen, isDirty]);
 
   // Normal visitors (and the server / first client render) get nothing.
   if (!editMode) return null;
@@ -252,10 +320,7 @@ export default function ReorderMenu() {
             <button
               type="button"
               role="menuitem"
-              onClick={() => {
-                setMenuOpen(false);
-                setPanelOpen(true);
-              }}
+              onClick={openPanel}
               className="flex w-full items-center gap-2 px-4 py-3 text-right text-sm font-medium text-fg/80 transition-colors hover:bg-surface-2 hover:text-fg"
             >
               <span aria-hidden className="text-base leading-none">
@@ -301,7 +366,7 @@ export default function ReorderMenu() {
               </h2>
               <button
                 type="button"
-                onClick={() => setPanelOpen(false)}
+                onClick={requestClose}
                 className="inline-flex min-h-[40px] shrink-0 items-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-fg/70 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
               >
                 סגור
@@ -321,11 +386,11 @@ export default function ReorderMenu() {
             onDragCancel={() => setActiveSlug(null)}
           >
             <SortableContext
-              items={order.map((p) => p.slug)}
+              items={draft.map((p) => p.slug)}
               strategy={verticalListSortingStrategy}
             >
               <ul className="min-h-0 flex-1 select-none space-y-2 overflow-y-auto overscroll-contain px-4 py-4">
-                {order.map((project, index) => (
+                {draft.map((project, index) => (
                   <SortableProjectRow
                     key={project.slug}
                     project={project}
@@ -358,51 +423,113 @@ export default function ReorderMenu() {
               column so the long Hebrew labels stay full-width and tappable on
               narrow phones (360px) without crowding or horizontal overflow. */}
           <div className="flex shrink-0 flex-col gap-3 border-t border-border px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+            {/* Helper text — makes the draft model explicit, and flips to a live
+                "unsaved changes" hint the moment the draft diverges. */}
             <p className="text-xs leading-relaxed text-fg/50">
-              הסדר נשמר במכשיר הזה בלבד. כדי להפוך אותו לסדר הציבורי באתר, צריך
-              לעדכן את קובץ הפרויקטים בקוד.
+              {isDirty ? (
+                <span className="font-medium text-accent">
+                  יש שינויים שלא נשמרו.{" "}
+                </span>
+              ) : null}
+              גרירה משנה את הסדר רק כאן. כדי לשמור באתר, לחץ אשר סדר חדש.
             </p>
 
-            {/* Primary new action: save the current dragged order as this
-                device's default. */}
+            {/* Primary action: promote the draft to the live order + persist. */}
             <button
               type="button"
-              onClick={setAsDefault}
-              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-accent px-4 text-center text-sm font-semibold leading-tight text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
+              onClick={confirmOrder}
+              disabled={!isDirty}
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-accent px-4 text-center text-sm font-semibold leading-tight text-white shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:opacity-40"
             >
-              הגדר כסדר ברירת מחדל
+              אשר סדר חדש
             </button>
 
-            {/* Secondary row: reset to (local default or code order) + close. */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={reset}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-3 text-center text-sm font-medium leading-tight text-fg/70 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
-              >
-                איפוס סדר
-              </button>
-              <button
-                type="button"
-                onClick={() => setPanelOpen(false)}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-3 text-center text-sm font-medium leading-tight text-fg/70 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
-              >
-                סגור
-              </button>
-            </div>
+            {/* Secondary action: preview a reset in the draft (saved default or
+                the original code order). Nothing persists until confirmed. */}
+            <button
+              type="button"
+              onClick={() => setDraft(getResetOrder())}
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border bg-surface px-3 text-center text-sm font-medium leading-tight text-fg/70 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
+            >
+              איפוס סדר
+            </button>
 
-            {/* Optional tertiary action: only meaningful once a per-device
-                default exists. Restores the original code order. */}
-            {hasDefault && (
+            {/* Tertiary actions: muted, full-width so they never crowd the row
+                or overflow on a 360px phone. */}
+            <div className="flex flex-col gap-1.5 pt-1">
               <button
                 type="button"
-                onClick={resetToOriginal}
-                className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg px-3 text-center text-xs font-medium leading-tight text-fg/45 underline-offset-4 transition-colors hover:text-fg/70 hover:underline active:scale-95"
+                onClick={() => saveAsDefault(draft)}
+                className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg px-3 text-center text-xs font-medium leading-tight text-fg/55 underline-offset-4 transition-colors hover:text-fg/80 hover:underline active:scale-95"
               >
-                איפוס לברירת מחדל מקורית
+                הגדר כסדר ברירת מחדל
               </button>
-            )}
+
+              {/* Only meaningful once a per-device default exists. Previews the
+                  original code order in the draft. */}
+              {hasDefault && (
+                <button
+                  type="button"
+                  onClick={() => setDraft(originalOrder)}
+                  className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg px-3 text-center text-xs font-medium leading-tight text-fg/45 underline-offset-4 transition-colors hover:text-fg/70 hover:underline active:scale-95"
+                >
+                  איפוס לברירת מחדל מקורית
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Unsaved-changes confirmation. Sits above the manager (its own
+              backdrop) and only mounts when a guarded close found a dirty draft.
+              Tapping the backdrop ≈ "המשך עריכה" (keep editing). */}
+          {confirmOpen && (
+            <div
+              className="absolute inset-0 z-[70] flex items-center justify-center bg-black/50 p-5"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reorder-confirm-title"
+              onClick={() => setConfirmOpen(false)}
+            >
+              <div
+                className="w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3
+                  id="reorder-confirm-title"
+                  className="text-base font-semibold text-fg"
+                >
+                  שינויים שלא נשמרו
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-fg/60">
+                  שינית את סדר הפרויקטים. האם לשמור את הסדר החדש לפני היציאה?
+                </p>
+
+                <div className="mt-5 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={confirmOrder}
+                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-accent px-4 text-center text-sm font-semibold leading-tight text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
+                  >
+                    אשר ושמור
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closePanel}
+                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-center text-sm font-medium leading-tight text-fg/70 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95"
+                  >
+                    צא בלי לשמור
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmOpen(false)}
+                    className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg px-4 text-center text-xs font-medium leading-tight text-fg/55 underline-offset-4 transition-colors hover:text-fg/80 hover:underline active:scale-95"
+                  >
+                    המשך עריכה
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           </div>,
           document.body,
         )}

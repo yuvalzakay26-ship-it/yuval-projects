@@ -120,35 +120,36 @@ function readDefaultSlugs(): string[] | null {
 }
 
 interface ReorderContextValue {
-  /** Projects in the current display order. */
+  /** Projects in the current *active* display order — what the grid renders. */
   order: Project[];
+  /** The canonical code order from `lib/projects.ts`, untouched by the user. */
+  originalOrder: Project[];
   /**
    * True after mount when edit mode is active — either because `?edit=1` is in
    * the URL, or because it was persisted from an earlier `?edit=1` visit.
    */
   editMode: boolean;
-  /** Move the project at `index` up (-1) or down (+1). */
-  move: (index: number, direction: -1 | 1) => void;
   /**
-   * Move the project from `fromIndex` to `toIndex`, shifting the rest. Used by
-   * drag-and-drop, where a row can jump several positions in one gesture.
+   * Commit a brand-new active order: update the live grid *and* persist it to
+   * {@link ORDER_KEY}. This is the only path that writes the active order to
+   * localStorage — the reorder manager works on a private draft until the owner
+   * explicitly confirms, then calls this once.
    */
-  reorder: (fromIndex: number, toIndex: number) => void;
+  commitOrder: (next: Project[]) => void;
   /**
-   * Reset the active order. If a per-device default has been saved, restore
-   * that; otherwise fall back to the original order from `lib/projects.ts`.
+   * Compute (without any side effects) the order that a "reset" should preview:
+   * the saved per-device default if one exists, otherwise the original code
+   * order. The manager applies this to its draft so the owner can preview it
+   * before committing.
    */
-  reset: () => void;
+  getResetOrder: () => Project[];
   /**
-   * Save the current active order as this device's default. The active order
-   * itself is left untouched.
+   * Save `next` as this device's default order *and* as the active order, then
+   * persist both. Saving a default always implies the draft is the order the
+   * owner wants live, so there is never an ambiguous "saved as default but not
+   * active" state.
    */
-  setAsDefault: () => void;
-  /**
-   * Forget the per-device default *and* the active order, restoring the
-   * original order from `lib/projects.ts`.
-   */
-  resetToOriginal: () => void;
+  saveAsDefault: (next: Project[]) => void;
   /** True when a per-device default order is currently saved. */
   hasDefault: boolean;
 }
@@ -231,127 +232,57 @@ export default function ReorderProvider({
     }
   }, [projects]);
 
-  const move = useCallback((index: number, direction: -1 | 1) => {
-    setOrder((current) => {
-      const target = index + direction;
-      if (target < 0 || target >= current.length) return current;
-      const next = current.slice();
-      [next[index], next[target]] = [next[target], next[index]];
-      try {
-        localStorage.setItem(
-          ORDER_KEY,
-          JSON.stringify(next.map((p) => p.slug)),
-        );
-      } catch {
-        // Ignore storage failures — the visual order still updates this session.
-      }
-      return next;
-    });
+  const commitOrder = useCallback((next: Project[]) => {
+    // The single write-path for the active order. Persist first, then update
+    // the live grid so a refresh keeps showing exactly what was committed.
+    try {
+      localStorage.setItem(ORDER_KEY, JSON.stringify(next.map((p) => p.slug)));
+    } catch {
+      // Ignore storage failures — the visual order still updates this session.
+    }
+    setOrder(next);
   }, []);
 
-  const reorder = useCallback((fromIndex: number, toIndex: number) => {
-    setOrder((current) => {
-      if (
-        fromIndex === toIndex ||
-        fromIndex < 0 ||
-        toIndex < 0 ||
-        fromIndex >= current.length ||
-        toIndex >= current.length
-      ) {
-        return current;
-      }
-      const next = current.slice();
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      try {
-        localStorage.setItem(
-          ORDER_KEY,
-          JSON.stringify(next.map((p) => p.slug)),
-        );
-      } catch {
-        // Ignore storage failures — the visual order still updates this session.
-      }
-      return next;
-    });
-  }, []);
-
-  const reset = useCallback(() => {
-    // Prefer a saved per-device default; only fall back to the code order when
-    // none exists. When restoring a default we persist it as the active order
-    // too, so a refresh keeps showing it.
+  const getResetOrder = useCallback((): Project[] => {
+    // Side-effect free: prefer a saved per-device default, else the code order.
+    // The manager applies this to its draft so it can be previewed and only
+    // becomes live once the owner confirms via `commitOrder`.
     const defaultSlugs = readDefaultSlugs();
-    if (defaultSlugs) {
-      const next = orderFromSlugs(defaultSlugs, projects);
-      try {
-        localStorage.setItem(
-          ORDER_KEY,
-          JSON.stringify(next.map((p) => p.slug)),
-        );
-      } catch {
-        // Ignore storage failures — the in-memory order still updates.
-      }
-      setOrder(next);
-      return;
-    }
-
-    try {
-      localStorage.removeItem(ORDER_KEY);
-    } catch {
-      // Ignore — we still restore the original order in memory below.
-    }
-    setOrder(projects);
+    return defaultSlugs ? orderFromSlugs(defaultSlugs, projects) : projects;
   }, [projects]);
 
-  const setAsDefault = useCallback(() => {
-    // Snapshot the *current* active order into the default slot, leaving the
-    // active order untouched. Read it via the functional updater to avoid a
-    // stale closure over `order`.
-    setOrder((current) => {
-      try {
-        localStorage.setItem(
-          DEFAULT_ORDER_KEY,
-          JSON.stringify(current.map((p) => p.slug)),
-        );
-        setHasDefault(true);
-      } catch {
-        // Storage unavailable (private mode) — nothing saved, order unchanged.
-      }
-      return current;
-    });
+  const saveAsDefault = useCallback((next: Project[]) => {
+    // Pin `next` as the per-device default *and* make it the active order, so
+    // "default" and "active" never drift apart. Both keys move together.
+    try {
+      const slugs = JSON.stringify(next.map((p) => p.slug));
+      localStorage.setItem(DEFAULT_ORDER_KEY, slugs);
+      localStorage.setItem(ORDER_KEY, slugs);
+      setHasDefault(true);
+    } catch {
+      // Storage unavailable (private mode) — fall through and still update the
+      // in-memory active order below so the session reflects the choice.
+    }
+    setOrder(next);
   }, []);
-
-  const resetToOriginal = useCallback(() => {
-    // Forget both the saved default and the active order, returning to the
-    // canonical code order from `lib/projects.ts`.
-    try {
-      localStorage.removeItem(DEFAULT_ORDER_KEY);
-      localStorage.removeItem(ORDER_KEY);
-    } catch {
-      // Ignore — we still restore the original order in memory below.
-    }
-    setHasDefault(false);
-    setOrder(projects);
-  }, [projects]);
 
   const value = useMemo<ReorderContextValue>(
     () => ({
       order,
+      originalOrder: projects,
       editMode,
-      move,
-      reorder,
-      reset,
-      setAsDefault,
-      resetToOriginal,
+      commitOrder,
+      getResetOrder,
+      saveAsDefault,
       hasDefault,
     }),
     [
       order,
+      projects,
       editMode,
-      move,
-      reorder,
-      reset,
-      setAsDefault,
-      resetToOriginal,
+      commitOrder,
+      getResetOrder,
+      saveAsDefault,
       hasDefault,
     ],
   );
