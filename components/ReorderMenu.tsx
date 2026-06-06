@@ -61,19 +61,15 @@ function GripIcon() {
 function RowInner({
   project,
   index,
-  total,
-  move,
   dragHandleProps,
 }: {
   project: Project;
   index: number;
-  total: number;
-  move?: (index: number, direction: -1 | 1) => void;
   dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
 }) {
   return (
     <>
-      {/* Drag handle — large touch target, the primary interaction. */}
+      {/* Drag handle — large touch target, the only reorder control. */}
       <button
         type="button"
         // `touch-none` stops the browser from claiming the gesture as a scroll
@@ -97,32 +93,6 @@ function RowInner({
           {STATUS_LABEL[project.status]}
         </span>
       </span>
-
-      {/* Up/down buttons kept as an accessible, no-drag fallback. */}
-      {move && (
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => move(index, -1)}
-            disabled={index === 0}
-            aria-label={`הזז את ${project.title} למעלה`}
-            title="למעלה"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-base text-fg/80 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none disabled:hover:border-border disabled:hover:text-fg/80"
-          >
-            <span aria-hidden>↑</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => move(index, 1)}
-            disabled={index === total - 1}
-            aria-label={`הזז את ${project.title} למטה`}
-            title="למטה"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-base text-fg/80 shadow-sm transition-colors hover:border-accent/50 hover:text-fg active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none disabled:hover:border-border disabled:hover:text-fg/80"
-          >
-            <span aria-hidden>↓</span>
-          </button>
-        </div>
-      )}
     </>
   );
 }
@@ -131,13 +101,9 @@ function RowInner({
 function SortableProjectRow({
   project,
   index,
-  total,
-  move,
 }: {
   project: Project;
   index: number;
-  total: number;
-  move: (index: number, direction: -1 | 1) => void;
 }) {
   const {
     attributes,
@@ -168,8 +134,6 @@ function SortableProjectRow({
       <RowInner
         project={project}
         index={index}
-        total={total}
-        move={move}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
     </li>
@@ -177,7 +141,7 @@ function SortableProjectRow({
 }
 
 export default function ReorderMenu() {
-  const { editMode, order, move, reorder, reset } = useReorder();
+  const { editMode, order, reorder, reset } = useReorder();
   const [menuOpen, setMenuOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
@@ -369,8 +333,6 @@ export default function ReorderMenu() {
                     key={project.slug}
                     project={project}
                     index={index}
-                    total={order.length}
-                    move={move}
                   />
                 ))}
               </ul>
@@ -386,7 +348,6 @@ export default function ReorderMenu() {
                       <RowInner
                         project={activeProject}
                         index={activeIndex}
-                        total={order.length}
                       />
                     </li>
                   </ul>
