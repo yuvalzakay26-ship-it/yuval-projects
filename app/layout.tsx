@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Heebo } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 
 const heebo = Heebo({
   subsets: ["hebrew", "latin"],
@@ -65,6 +66,7 @@ export default function RootLayout({
       <body className="font-sans">
         <ServiceWorkerRegister />
         {children}
+        <ScrollToTopButton />
       </body>
     </html>
   );
